@@ -1,19 +1,22 @@
-# mcp-to-skill-converter
+# mcp-to-skill
 
-Convert any MCP server into a Claude Skill with 90% context savings.
+Convert any MCP server into a Claude Skill with 90% context savings and portable standalone executables.
 
 ## Why This Exists
 
 MCP servers are great but load all tool definitions into context at startup. With 20+ tools, that's 30-50k tokens gone before Claude does any work.
 
-This converter applies the "progressive disclosure" pattern (inspired by playwright-skill) to any MCP server:
+This converter applies the "progressive disclosure" pattern to any MCP server:
 - **Startup**: ~100 tokens (just metadata)
 - **When used**: ~5k tokens (full instructions)
-- **Executing**: 0 tokens (runs externally)
+- **Executing**: 0 tokens (runs externally via standalone binary)
 
 ## Quick Start
 
 ```bash
+# Install dependencies
+npm install
+
 # 1. Create your MCP config file
 cat > github-mcp.json << 'EOF'
 {
@@ -24,32 +27,41 @@ cat > github-mcp.json << 'EOF'
 }
 EOF
 
-# 2. Convert to Skill
-python mcp_to_skill.py \
-  --mcp-config github-mcp.json \
-  --output-dir ./skills/github
+# 2. Convert to Skill (compiles standalone binary for current platform)
+bun run dev --mcp-config github-mcp.json --output-dir ./skills/github
 
-# 3. Install dependencies
-cd skills/github
-pip install mcp
-
-# 4. Copy to Claude
-cp -r . ~/.claude/skills/github
+# 3. Copy to Claude
+cp -r ./skills/github ~/.claude/skills/
 ```
 
 Done! Claude can now use GitHub tools with minimal context.
 
-## What It Does
+## Cross-Platform Compilation
 
-The converter:
-1. Reads your MCP server config
-2. Generates a Skill structure with:
-   - `SKILL.md` - Instructions for Claude
-   - `executor.py` - Handles MCP calls dynamically
-   - Config files
-3. Claude loads metadata only (~100 tokens)
-4. Full instructions load when the skill is needed
-5. Executor runs MCP tools outside context
+The generated executor is compiled to a standalone binary using Bun. No runtime dependencies needed!
+
+```bash
+# Compile for current platform (default)
+bun run dev --mcp-config config.json --output-dir ./skills/myskill
+
+# Compile for all platforms
+bun run dev --mcp-config config.json --output-dir ./skills/myskill --target all
+
+# Compile for specific platform
+bun run dev --mcp-config config.json --output-dir ./skills/myskill --target linux-x64
+bun run dev --mcp-config config.json --output-dir ./skills/myskill --target darwin-arm64
+bun run dev --mcp-config config.json --output-dir ./skills/myskill --target darwin-x64
+bun run dev --mcp-config config.json --output-dir ./skills/myskill --target windows-x64
+```
+
+## What It Generates
+
+The converter creates:
+- `SKILL.md` - Instructions for Claude (~100 tokens metadata)
+- `executor` - Standalone binary (no dependencies!)
+- `executor.ts` - Source code (for rebuilding)
+- `mcp-config.json` - MCP server configuration
+- `package.json` - For rebuilding if needed
 
 ## Context Savings
 
@@ -78,37 +90,26 @@ GitHub MCP server (8 tools):
 ## Works With
 
 Any standard MCP server:
-- ✅ @modelcontextprotocol/server-github
-- ✅ @modelcontextprotocol/server-slack  
-- ✅ @modelcontextprotocol/server-filesystem
-- ✅ @modelcontextprotocol/server-postgres
-- ✅ Your custom MCP servers
-
-## When To Use
-
-**Use this converter when:**
-- You have 10+ tools
-- Context space is tight
-- Most tools won't be used in each conversation
-- Tools are independent
-
-**Stick with MCP when:**
-- You have 1-5 tools
-- Need complex OAuth flows
-- Need persistent connections
-- Cross-platform compatibility critical
-
-**Best approach: Use both**
-- MCP for core tools
-- Skills for extended toolset
+- @modelcontextprotocol/server-github
+- @modelcontextprotocol/server-slack
+- @modelcontextprotocol/server-filesystem
+- @modelcontextprotocol/server-postgres
+- Your custom MCP servers
 
 ## Requirements
 
-```bash
-pip install mcp
-```
+- [Bun](https://bun.sh/) (for compilation)
+- Node.js 18+ (or Bun)
 
-Python 3.8+ required.
+```bash
+# Install Bun (if not already installed)
+curl -fsSL https://bun.sh/install | bash
+
+# Install project dependencies
+npm install
+# or
+bun install
+```
 
 ## How It Works
 
@@ -120,16 +121,19 @@ Python 3.8+ required.
            │
            ▼
 ┌─────────────────────────────────────┐
-│ mcp_to_skill.py                     │
+│ mcp-to-skill                        │
 │ - Reads config                      │
+│ - Introspects MCP server            │
 │ - Generates Skill structure         │
+│ - Compiles standalone binary        │
 └──────────┬──────────────────────────┘
            │
            ▼
 ┌─────────────────────────────────────┐
 │ Generated Skill                     │
 │ ├── SKILL.md (100 tokens)           │
-│ ├── executor.py (dynamic calls)     │
+│ ├── executor (standalone binary)    │
+│ ├── executor.ts (source)            │
 │ └── config files                    │
 └─────────────────────────────────────┘
            │
@@ -138,7 +142,7 @@ Python 3.8+ required.
 │ Claude                              │
 │ - Loads metadata only               │
 │ - Full docs when needed             │
-│ - Calls executor for tools          │
+│ - Calls executor binary for tools   │
 └─────────────────────────────────────┘
 ```
 
@@ -158,7 +162,7 @@ cat > github.json << 'EOF'
 EOF
 
 # Convert
-python mcp_to_skill.py --mcp-config github.json --output-dir ./skills/github
+bun run dev --mcp-config github.json --output-dir ./skills/github
 
 # Result: GitHub tools accessible with 100 tokens vs 8k
 ```
@@ -169,51 +173,85 @@ python mcp_to_skill.py --mcp-config github.json --output-dir ./skills/github
 # Convert multiple MCP servers
 for config in configs/*.json; do
   name=$(basename "$config" .json)
-  python mcp_to_skill.py --mcp-config "$config" --output-dir "./skills/$name"
+  bun run dev --mcp-config "$config" --output-dir "./skills/$name"
 done
 ```
 
-## Troubleshooting
+### Example 3: Build for Distribution
 
-### "mcp package not found"
 ```bash
-pip install mcp
+# Build for all platforms
+bun run dev --mcp-config config.json --output-dir ./skills/myskill --target all
+
+# Generated files:
+# skills/myskill/executor-linux-x64
+# skills/myskill/executor-darwin-arm64
+# skills/myskill/executor-darwin-x64
+# skills/myskill/executor-windows-x64.exe
 ```
 
-### "MCP server not responding"
-Check your config file:
-- Command is correct
-- Environment variables set
-- Server is accessible
+## Testing Generated Skills
 
-### Testing the generated skill
 ```bash
 cd skills/your-skill
 
 # List tools
-python executor.py --list
+./executor --list
 
 # Describe a tool
-python executor.py --describe tool_name
+./executor --describe tool_name
 
 # Call a tool
-python executor.py --call '{"tool": "tool_name", "arguments": {...}}'
+./executor --call '{"tool": "tool_name", "arguments": {...}}'
 ```
 
-## Limitations
+## Rebuilding from Source
 
-- Early stage (feedback welcome)
-- Requires `mcp` Python package
-- Some complex auth may need adjustments
-- Not all MCP servers tested
+If you need to rebuild the executor:
 
-## Contributing
+```bash
+cd skills/your-skill
 
-This is a proof of concept. Contributions welcome:
-- Test with more MCP servers
-- Improve error handling
-- Add more examples
-- Better documentation
+# Install dependencies
+bun install
+
+# Build for current platform
+bun run build
+
+# Build for all platforms
+bun run build:all
+```
+
+## When To Use
+
+**Use this converter when:**
+- You have 10+ tools
+- Context space is tight
+- Most tools won't be used in each conversation
+- Tools are independent
+- You want portable, standalone executors
+
+**Stick with MCP when:**
+- You have 1-5 tools
+- Need complex OAuth flows
+- Need persistent connections
+
+**Best approach: Use both**
+- MCP for core tools
+- Skills for extended toolset
+
+## Development
+
+```bash
+# Install dependencies
+bun install
+
+# Run in development mode
+bun run dev --mcp-config example-github-mcp.json --output-dir ./test-output
+
+# Build for distribution
+bun run build
+```
 
 ## Credits
 
@@ -221,19 +259,8 @@ Inspired by:
 - [playwright-skill](https://github.com/lackeyjb/playwright-skill) by @lackeyjb
 - [Anthropic Skills](https://www.anthropic.com/news/skills) framework
 - [Model Context Protocol](https://modelcontextprotocol.io/)
+- [Bun](https://bun.sh/) for standalone binary compilation
 
 ## License
 
 MIT
-
-## Learn More
-
-- [Detailed writeup](link-to-your-gist)
-- [Anthropic Skills docs](https://www.anthropic.com/news/skills)
-- [MCP specification](https://modelcontextprotocol.io/)
-
----
-
-**Status**: Functional but early stage  
-**Feedback**: Issues and PRs welcome  
-**Questions**: Open an issue
