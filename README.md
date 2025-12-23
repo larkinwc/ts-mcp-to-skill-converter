@@ -55,7 +55,7 @@ Convert MCP servers to Claude Skills. Save ~90% context tokens.
 ### 2. Generate the skill
 
 ```bash
-npx -y github:larkinwc/ts-mcp-to-skill generate \
+npx -y mcp-to-skill generate \
   --mcp-config my-mcp.json \
   --output-dir ./skills/my-skill
 ```
@@ -69,7 +69,7 @@ cp -r ./skills/my-skill ~/.claude/skills/
 Claude discovers it automatically. The generated `SKILL.md` instructs Claude to call tools via:
 
 ```bash
-npx -y github:larkinwc/ts-mcp-to-skill exec \
+npx -y mcp-to-skill exec \
   --config /path/to/mcp-config.json \
   --call '{"tool": "tool_name", "arguments": {...}}'
 ```
@@ -79,10 +79,12 @@ npx -y github:larkinwc/ts-mcp-to-skill exec \
 ```
 skills/my-skill/
 ├── SKILL.md         # Instructions for Claude (~100 tokens)
-├── executor.ts      # Local fallback executor
-├── mcp-config.json  # MCP server config
-└── package.json     # Dependencies (for local fallback)
+└── mcp-config.json  # MCP server config
 ```
+
+## Fine-tuning
+
+In my experience it is best to fine tune the skill.md a little by enhancing the description to be more concise about the tool (e.g. give the agent context on the purpose of the mcp/tool). Additionally some MCP's tool usage descriptions are too verbose and can be edited down for further savings.
 
 ## Development
 

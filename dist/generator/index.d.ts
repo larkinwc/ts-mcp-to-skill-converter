@@ -8,8 +8,6 @@ export declare class MCPSkillGenerator {
     constructor(configPath: string, outputDir: string);
     generate(): Promise<void>;
     private writeSkillMd;
-    private writeExecutorTs;
     private writeMcpConfig;
-    private writePackageJson;
     private printSummary;
 }

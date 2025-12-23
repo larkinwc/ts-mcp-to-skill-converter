@@ -45,11 +45,12 @@ function formatSignature(tool) {
 /**
  * Generate SKILL.md content for a skill.
  */
-export function generateSkillMd(serverName, tools) {
+export function generateSkillMd(serverName, tools, version) {
     const toolList = tools
         .map((t) => `- \`${formatSignature(t)}\`: ${t.description ?? 'No description'}`)
         .join('\n');
     const toolCount = tools.length;
+    const npxCmd = `npx -y mcp-to-skill@${version} exec`;
     return `---
 name: ${serverName}
 description: Dynamic access to ${serverName} MCP server (${toolCount} tools)
@@ -92,7 +93,7 @@ When the user's request matches this skill's capabilities:
 **Step 2: Execute the tool:**
 
 \`\`\`bash
-npx -y github:larkinwc/ts-mcp-to-skill exec --config $SKILL_DIR/mcp-config.json --call '{"tool": "tool_name", "arguments": {"param1": "value1"}}'
+${npxCmd} --config $SKILL_DIR/mcp-config.json --call '{"tool": "tool_name", "arguments": {"param1": "value1"}}'
 \`\`\`
 
 IMPORTANT: Replace \`$SKILL_DIR\` with the actual path to this skill directory.
@@ -101,17 +102,17 @@ IMPORTANT: Replace \`$SKILL_DIR\` with the actual path to this skill directory.
 
 **Call a tool:**
 \`\`\`bash
-npx -y github:larkinwc/ts-mcp-to-skill exec --config $SKILL_DIR/mcp-config.json --call '{"tool": "tool_name", "arguments": {...}}'
+${npxCmd} --config $SKILL_DIR/mcp-config.json --call '{"tool": "tool_name", "arguments": {...}}'
 \`\`\`
 
 **List all tools:**
 \`\`\`bash
-npx -y github:larkinwc/ts-mcp-to-skill exec --config $SKILL_DIR/mcp-config.json --list
+${npxCmd} --config $SKILL_DIR/mcp-config.json --list
 \`\`\`
 
 **Get tool schema (if needed):**
 \`\`\`bash
-npx -y github:larkinwc/ts-mcp-to-skill exec --config $SKILL_DIR/mcp-config.json --describe tool_name
+${npxCmd} --config $SKILL_DIR/mcp-config.json --describe tool_name
 \`\`\`
 
 ## Example
@@ -119,15 +120,7 @@ npx -y github:larkinwc/ts-mcp-to-skill exec --config $SKILL_DIR/mcp-config.json 
 User: "Use ${serverName} to do X"
 
 \`\`\`bash
-npx -y github:larkinwc/ts-mcp-to-skill exec --config $SKILL_DIR/mcp-config.json --call '{"tool": "example_tool", "arguments": {"param1": "value"}}'
-\`\`\`
-
-## Fallback (Offline/Local)
-
-If npx is unavailable, use the local executor:
-\`\`\`bash
-cd $SKILL_DIR && npm install  # First time only
-npx tsx executor.ts --call '{"tool": "tool_name", "arguments": {...}}'
+${npxCmd} --config $SKILL_DIR/mcp-config.json --call '{"tool": "example_tool", "arguments": {"param1": "value"}}'
 \`\`\`
 
 ## Error Handling

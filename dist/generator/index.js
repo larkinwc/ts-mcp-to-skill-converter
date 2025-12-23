@@ -1,9 +1,19 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { introspectMCPServer } from '../mcp/client.js';
 import { generateSkillMd } from './skill-md.js';
-import { generateExecutorTs } from './executor.js';
-import { generatePackageJson } from './package-json.js';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+/**
+ * Get the current package version
+ */
+async function getPackageVersion() {
+    const pkgPath = path.join(__dirname, '../../package.json');
+    const pkgContent = await fs.readFile(pkgPath, 'utf-8');
+    const pkg = JSON.parse(pkgContent);
+    return pkg.version ?? '0.1.0';
+}
 /**
  * Check if config is Claude Desktop format (has mcpServers wrapper)
  */
@@ -59,6 +69,7 @@ export class MCPSkillGenerator {
         const rawConfig = JSON.parse(configContent);
         this.config = parseConfig(rawConfig);
         const serverName = this.config.name ?? 'unnamed-mcp-server';
+        const version = await getPackageVersion();
         console.log(`Generating skill for MCP server: ${serverName}`);
         // 2. Create output directory
         await fs.mkdir(this.outputDir, { recursive: true });
@@ -75,34 +86,20 @@ export class MCPSkillGenerator {
             tools = [];
         }
         // 4. Generate files
-        await this.writeSkillMd(serverName, tools);
-        await this.writeExecutorTs();
+        await this.writeSkillMd(serverName, tools, version);
         await this.writeMcpConfig();
-        await this.writePackageJson(serverName);
         this.printSummary(serverName, tools.length);
     }
-    async writeSkillMd(serverName, tools) {
-        const content = generateSkillMd(serverName, tools);
+    async writeSkillMd(serverName, tools, version) {
+        const content = generateSkillMd(serverName, tools, version);
         const filePath = path.join(this.outputDir, 'SKILL.md');
         await fs.writeFile(filePath, content, 'utf-8');
         console.log(`  Generated: SKILL.md`);
-    }
-    async writeExecutorTs() {
-        const content = generateExecutorTs();
-        const filePath = path.join(this.outputDir, 'executor.ts');
-        await fs.writeFile(filePath, content, 'utf-8');
-        console.log(`  Generated: executor.ts`);
     }
     async writeMcpConfig() {
         const filePath = path.join(this.outputDir, 'mcp-config.json');
         await fs.writeFile(filePath, JSON.stringify(this.config, null, 2), 'utf-8');
         console.log(`  Generated: mcp-config.json`);
-    }
-    async writePackageJson(serverName) {
-        const content = generatePackageJson(serverName);
-        const filePath = path.join(this.outputDir, 'package.json');
-        await fs.writeFile(filePath, JSON.stringify(content, null, 2), 'utf-8');
-        console.log(`  Generated: package.json`);
     }
     printSummary(serverName, toolCount) {
         console.log('\n' + '='.repeat(60));
@@ -110,15 +107,9 @@ export class MCPSkillGenerator {
         console.log('='.repeat(60));
         console.log(`\nGenerated files in: ${this.outputDir}`);
         console.log('  - SKILL.md (instructions for Claude)');
-        console.log('  - executor.ts (TypeScript executor)');
         console.log('  - mcp-config.json (MCP server configuration)');
-        console.log('  - package.json (dependencies)');
         console.log(`\nTo use this skill:`);
-        console.log(`1. Install dependencies in the skill directory:`);
-        console.log(`   cd ${this.outputDir} && npm install`);
-        console.log(`\n2. Copy to Claude skills directory:`);
-        console.log(`   cp -r ${this.outputDir} ~/.claude/skills/`);
-        console.log(`\n3. Claude will discover it automatically`);
+        console.log(`  cp -r ${this.outputDir} ~/.claude/skills/`);
         console.log(`\nContext savings:`);
         console.log(`  Before (MCP): All ${toolCount} tools preloaded (~${toolCount * 500} tokens)`);
         console.log(`  After (Skill): ~100 tokens until used`);

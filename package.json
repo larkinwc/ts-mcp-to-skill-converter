@@ -1,8 +1,17 @@
 {
   "name": "mcp-to-skill",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Convert MCP servers to Claude Skills with progressive disclosure",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/larkinwc/ts-mcp-to-skill.git"
+  },
+  "homepage": "https://github.com/larkinwc/ts-mcp-to-skill#readme",
+  "bugs": {
+    "url": "https://github.com/larkinwc/ts-mcp-to-skill/issues"
+  },
+  "author": "larkinwc",
   "bin": {
     "mcp-to-skill": "./dist/index.js"
   },
