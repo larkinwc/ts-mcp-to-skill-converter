@@ -107,7 +107,7 @@ When the user's request matches this skill's capabilities:
 **Step 2: Execute the tool:**
 
 \`\`\`bash
-npx -y github:larkinwc/ts-mcp-to-skill-converter exec --config $SKILL_DIR/mcp-config.json --call '{"tool": "tool_name", "arguments": {"param1": "value1"}}'
+npx -y github:larkinwc/ts-mcp-to-skill exec --config $SKILL_DIR/mcp-config.json --call '{"tool": "tool_name", "arguments": {"param1": "value1"}}'
 \`\`\`
 
 IMPORTANT: Replace \`$SKILL_DIR\` with the actual path to this skill directory.
@@ -116,17 +116,17 @@ IMPORTANT: Replace \`$SKILL_DIR\` with the actual path to this skill directory.
 
 **Call a tool:**
 \`\`\`bash
-npx -y github:larkinwc/ts-mcp-to-skill-converter exec --config $SKILL_DIR/mcp-config.json --call '{"tool": "tool_name", "arguments": {...}}'
+npx -y github:larkinwc/ts-mcp-to-skill exec --config $SKILL_DIR/mcp-config.json --call '{"tool": "tool_name", "arguments": {...}}'
 \`\`\`
 
 **List all tools:**
 \`\`\`bash
-npx -y github:larkinwc/ts-mcp-to-skill-converter exec --config $SKILL_DIR/mcp-config.json --list
+npx -y github:larkinwc/ts-mcp-to-skill exec --config $SKILL_DIR/mcp-config.json --list
 \`\`\`
 
 **Get tool schema (if needed):**
 \`\`\`bash
-npx -y github:larkinwc/ts-mcp-to-skill-converter exec --config $SKILL_DIR/mcp-config.json --describe tool_name
+npx -y github:larkinwc/ts-mcp-to-skill exec --config $SKILL_DIR/mcp-config.json --describe tool_name
 \`\`\`
 
 ## Example
@@ -134,7 +134,7 @@ npx -y github:larkinwc/ts-mcp-to-skill-converter exec --config $SKILL_DIR/mcp-co
 User: "Use ${serverName} to do X"
 
 \`\`\`bash
-npx -y github:larkinwc/ts-mcp-to-skill-converter exec --config $SKILL_DIR/mcp-config.json --call '{"tool": "example_tool", "arguments": {"param1": "value"}}'
+npx -y github:larkinwc/ts-mcp-to-skill exec --config $SKILL_DIR/mcp-config.json --call '{"tool": "example_tool", "arguments": {"param1": "value"}}'
 \`\`\`
 
 ## Fallback (Offline/Local)
@@ -155,6 +155,6 @@ If the executor returns an error:
 ---
 
 *This skill was auto-generated from an MCP server configuration.*
-*Generator: [mcp-to-skill](https://github.com/larkinwc/ts-mcp-to-skill-converter)*
+*Generator: [mcp-to-skill](https://github.com/larkinwc/ts-mcp-to-skill)*
 `;
 }
