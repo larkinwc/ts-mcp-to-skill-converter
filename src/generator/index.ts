@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
  * Get the current package version
  */
 async function getPackageVersion(): Promise<string> {
-  const pkgPath = path.join(__dirname, '../../package.json');
+  const pkgPath = path.join(__dirname, '../package.json');
   const pkgContent = await fs.readFile(pkgPath, 'utf-8');
   const pkg = JSON.parse(pkgContent);
   return pkg.version ?? '0.1.0';
