@@ -1,4 +1,24 @@
+import { createHash } from 'node:crypto';
 import type { MCPTool } from '../mcp/types';
+
+export const CUSTOM_CONTENT_START = '<!-- mcp-to-skill:custom:start -->';
+export const CUSTOM_CONTENT_END = '<!-- mcp-to-skill:custom:end -->';
+
+export function skillNameFromServerName(serverName: string): string {
+  const skillName = serverName
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  if (!skillName) {
+    throw new Error(
+      `MCP server name "${serverName}" cannot form a valid skill name`
+    );
+  }
+  if (skillName.length <= 64) return skillName;
+  const digest = createHash('sha256').update(serverName).digest('hex').slice(0, 8);
+  return `${skillName.slice(0, 55).replace(/-+$/g, '')}-${digest}`;
+}
 
 /**
  * Map JSON Schema types to short type hints.
@@ -58,19 +78,26 @@ function formatSignature(tool: MCPTool): string {
 export function generateSkillMd(
   serverName: string,
   tools: MCPTool[],
-  version: string
+  version: string,
+  customContent = 'Add project-specific guidance here. This section is preserved by `mcp-to-skill refresh`.'
 ): string {
+  const skillName = skillNameFromServerName(serverName);
   const toolList = tools
-    .map((t) => `- \`${formatSignature(t)}\`: ${t.description ?? 'No description'}`)
+    .map((tool) => {
+      const description = (tool.description ?? 'No description')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return `- \`${formatSignature(tool)}\`: ${description}`;
+    })
     .join('\n');
 
   const toolCount = tools.length;
   const npxCmd = `npx -y mcp-to-skill@${version} exec`;
 
   return `---
-name: ${serverName}
-description: Dynamic access to ${serverName} MCP server (${toolCount} tools)
-version: 1.0.0
+name: ${JSON.stringify(skillName)}
+description: ${JSON.stringify(`Dynamic access to ${serverName} MCP server (${toolCount} tools)`)}
+version: ${JSON.stringify(version)}
 ---
 
 # ${serverName} Skill
@@ -106,29 +133,35 @@ When the user's request matches this skill's capabilities:
 
 **Step 1: Identify the right tool** from the list above
 
-**Step 2: Execute the tool:**
+**Step 2: Write the call as JSON** to a temporary file using a file-writing tool, without shell interpolation:
 
-\`\`\`bash
-${npxCmd} --config $SKILL_DIR/mcp-config.json --call '{"tool": "tool_name", "arguments": {"param1": "value1"}}'
+\`\`\`json
+{"tool": "tool_name", "arguments": {"param1": "value1"}}
 \`\`\`
 
-IMPORTANT: Replace \`$SKILL_DIR\` with the actual path to this skill directory.
+**Step 3: Execute the call:**
+
+\`\`\`bash
+${npxCmd} --config "$SKILL_DIR/mcp-config.json" --call-file "/tmp/mcp-call.json"
+\`\`\`
+
+IMPORTANT: Replace \`$SKILL_DIR\` with the actual path to this skill directory. Do not place user-controlled argument values directly in a shell command.
 
 ## Commands
 
-**Call a tool:**
+**Call a tool from a JSON file:**
 \`\`\`bash
-${npxCmd} --config $SKILL_DIR/mcp-config.json --call '{"tool": "tool_name", "arguments": {...}}'
+${npxCmd} --config "$SKILL_DIR/mcp-config.json" --call-file "/path/to/call.json"
 \`\`\`
 
 **List all tools:**
 \`\`\`bash
-${npxCmd} --config $SKILL_DIR/mcp-config.json --list
+${npxCmd} --config "$SKILL_DIR/mcp-config.json" --list
 \`\`\`
 
 **Get tool schema (if needed):**
 \`\`\`bash
-${npxCmd} --config $SKILL_DIR/mcp-config.json --describe tool_name
+${npxCmd} --config "$SKILL_DIR/mcp-config.json" --describe tool_name
 \`\`\`
 
 ## Example
@@ -136,8 +169,14 @@ ${npxCmd} --config $SKILL_DIR/mcp-config.json --describe tool_name
 User: "Use ${serverName} to do X"
 
 \`\`\`bash
-${npxCmd} --config $SKILL_DIR/mcp-config.json --call '{"tool": "example_tool", "arguments": {"param1": "value"}}'
+${npxCmd} --config "$SKILL_DIR/mcp-config.json" --call-file "/tmp/mcp-call.json"
 \`\`\`
+
+## Custom Instructions
+
+${CUSTOM_CONTENT_START}
+${customContent}
+${CUSTOM_CONTENT_END}
 
 ## Error Handling
 
@@ -151,4 +190,13 @@ If the executor returns an error:
 *This skill was auto-generated from an MCP server configuration.*
 *Generator: [mcp-to-skill](https://github.com/larkinwc/ts-mcp-to-skill)*
 `;
+}
+
+export function extractCustomContent(skillMarkdown: string): string | undefined {
+  const start = skillMarkdown.indexOf(CUSTOM_CONTENT_START);
+  const end = skillMarkdown.indexOf(CUSTOM_CONTENT_END);
+  if (start === -1 || end === -1 || end < start) return undefined;
+  return skillMarkdown
+    .slice(start + CUSTOM_CONTENT_START.length, end)
+    .replace(/^\r?\n|\r?\n$/g, '');
 }

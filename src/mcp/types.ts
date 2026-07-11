@@ -1,6 +1,3 @@
-/**
- * MCP Server Configuration - Stdio transport
- */
 export interface MCPStdioConfig {
   name: string;
   description?: string;
@@ -8,44 +5,66 @@ export interface MCPStdioConfig {
   command: string;
   args?: string[];
   env?: Record<string, string>;
+  cwd?: string;
 }
 
-/**
- * MCP Server Configuration - HTTP/SSE transport
- */
+export interface MCPBearerAuthConfig {
+  type: 'bearer';
+  token: string;
+}
+
+export interface MCPOAuthClientCredentialsConfig {
+  type: 'oauth-client-credentials';
+  clientId: string;
+  clientSecret: string;
+  scope?: string;
+}
+
+export type MCPHttpAuthConfig =
+  | MCPBearerAuthConfig
+  | MCPOAuthClientCredentialsConfig;
+
 export interface MCPHttpConfig {
   name: string;
   description?: string;
   type: 'http' | 'sse';
   url: string;
   headers?: Record<string, string>;
+  auth?: MCPHttpAuthConfig;
 }
 
-/**
- * Union type for all MCP server configurations
- */
 export type MCPServerConfig = MCPStdioConfig | MCPHttpConfig;
 
-/**
- * Claude Desktop config format wrapper
- */
+export function isHttpConfig(
+  config: MCPServerConfig
+): config is MCPHttpConfig {
+  return config.type === 'http' || config.type === 'sse';
+}
+
 export interface ClaudeDesktopConfig {
   mcpServers: Record<string, Omit<MCPServerConfig, 'name'>>;
 }
 
-/**
- * MCP Tool definition
- */
+export interface MCPConfigDocument {
+  servers: Record<string, MCPServerConfig>;
+  wrapped: boolean;
+}
+
 export interface MCPTool {
   name: string;
   description?: string;
   inputSchema: Record<string, unknown>;
 }
 
-/**
- * CLI Options
- */
-export interface CLIOptions {
-  mcpConfig: string;
-  outputDir: string;
+export interface ToolSnapshot {
+  schemaVersion: 1;
+  serverName: string;
+  generatedAt: string;
+  tools: MCPTool[];
+}
+
+export interface ToolChanges {
+  added: string[];
+  removed: string[];
+  changed: string[];
 }
