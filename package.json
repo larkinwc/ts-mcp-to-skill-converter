@@ -1,6 +1,6 @@
 {
   "name": "mcp-to-skill",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "type": "module",
   "description": "Convert MCP servers to Claude Skills with progressive disclosure",
   "repository": {
@@ -20,7 +20,10 @@
     "build": "tsup",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
-    "prepublishOnly": "npm run build"
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check",
+    "test": "node --import tsx --test tests/**/*.test.ts",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "files": [
     "dist/**/*"
@@ -34,17 +37,18 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "commander": "^12.0.0",
-    "zod": "^3.25.0"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "commander": "^15.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@biomejs/biome": "^2.5.3",
+    "@types/node": "^22.20.1",
     "tsup": "^8.5.1",
-    "tsx": "^4.21.0",
-    "typescript": "^5.4.0"
+    "tsx": "^4.23.0",
+    "typescript": "^7.0.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.12.0"
   }
 }
